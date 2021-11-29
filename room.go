@@ -9,11 +9,11 @@ const welcomeMessage = "%s joined the room"
 type Room struct {
 	ID         uuid.UUID `json:"id"`
 	Name       string    `json:"name"`
-	Players    map[int]*Player `json:"list"`
+	Players    map[int]*Player `json:"players"`
 	broadcast  chan *Message
-	Grid	   string	 `json:"limit"`
-	Theme	   string	 `json:"limit"`
-	Size      int 		 `json:"limit"`
+	Grid	   string	 `json:"grid"`
+	Theme	   string	 `json:"theme"`
+	Size      int 		 `json:"size"`
 }
 
 // NewRoom creates a new Room
