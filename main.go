@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-var addr = flag.String("addr", ":8080", "http server address")
+var addr = flag.String("addr", ":4000", "http server address")
 
 func main() {
 	flag.Parse()
@@ -15,7 +15,7 @@ func main() {
 	go wsServer.Run()
 
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		ServeWs(wsServer, w, r)
+		ConnectWs(wsServer, w, r)
 	})
 
 	fs := http.FileServer(http.Dir("./public"))

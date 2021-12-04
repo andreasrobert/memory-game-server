@@ -15,8 +15,9 @@ const RoomJoinedAction = "room-joined"
 
 type Message struct {
 	Action  string  `json:"action"`
-	Message string  `json:"message"`
-	Target  *Room   `json:"target"`
+	Message interface{}  `json:"message"`
+	Sender int `json:"sender"`
+	// Target  *Room   `json:"target"`
 }
 
 func (message *Message) encode() []byte {

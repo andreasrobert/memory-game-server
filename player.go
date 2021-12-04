@@ -2,10 +2,11 @@ package main
 
 import (
 	// "encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
-
+	"strconv"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 )
@@ -73,77 +74,78 @@ func (player *Player) readPump() {
 
 }
 
-func (player *Player) writePump() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-		player.conn.Close()
-	}()
-	for {
-		select {
-		case message, ok := <-player.send:
-			player.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if !ok {
-				// The WsServer closed the channel.
-				player.conn.WriteMessage(websocket.CloseMessage, []byte{})
-				return
-			}
 
-			w, err := player.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
-			}
-			w.Write(message)
-
-			// Attach queued chat messages to the current websocket message.
-			n := len(player.send)
-			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-player.send)
-			}
-
-			if err := w.Close(); err != nil {
-				return
-			}
-		case <-ticker.C:
-			player.conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := player.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
-				return
-			}
-		}
-	}
-}
 
 func (player *Player) disconnect() {
 	
 }
 
-// ServeWs handles websocket requests from clients requests.
-func ServeWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
-
+type JoinRoom struct{
+	name string
+	conn *websocket.Conn
 }
+
+// ConnectWs handles websocket requests from clients requests.
+func ConnectWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
+	create := r.URL.Query()["create"]
+	name := r.URL.Query()["name"]
+	conn, err := upgrader.Upgrade(w, r, nil)
+
+	if create[0] == "true" {
+		theme := r.URL.Query()["theme"]
+		grid := r.URL.Query()["grid"]
+		size := r.URL.Query()["size"]
+		intSize, _ := strconv.Atoi(size[0])
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
+		room := NewRoom(name[0],conn, theme[0],grid[0],intSize)
+
+		go room.RunRoom(wsServer)
+		wsServer.registerRoom <- room
+
+	
+
+	} else {
+		fmt.Println("joining")
+		joinRoom := JoinRoom{
+			name:name[0],
+			conn : conn,
+		}
+
+		wsServer.joinRoom <- &joinRoom
+		
+		go func(){
+			for{
+				_, jsonMessage, err := conn.ReadMessage()
+				fmt.Println("One22one")
+
+				if err != nil {
+					if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+						fmt.Printf("unexpected close error: %v", err)
+					}
+					break
+				}
+				wsServer.rooms[name[0]].handleNewMessage(jsonMessage)
+			}
+		}()
+
+		}
+	}
+
 
 func (player *Player) handleNewMessage(jsonMessage []byte) {
 
 
 }
 
-func (player *Player) handleJoinRoomMessage(message Message) {
-	roomName := message.Message
 
-	player.joinRoom(roomName, nil)
-}
-
-func (player *Player) handleLeaveRoomMessage(message Message) {
-
-}
-
-
-func (player *Player) joinRoom(roomName string, sender *Player) {
-
-}
 
 func (player *Player) isInRoom(room *Room) bool {
+	log.Println("going")
+
 	if _, ok := player.rooms[room]; ok {
 		return true
 	}
@@ -154,9 +156,8 @@ func (player *Player) isInRoom(room *Room) bool {
 func (player *Player) notifyRoomJoined(room *Room, sender *Player) {
 	message := Message{
 		Action: RoomJoinedAction,
-		Target: room,
+		// Target: room,
 	}
-
 	player.send <- message.encode()
 }
 
