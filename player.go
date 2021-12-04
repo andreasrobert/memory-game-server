@@ -119,13 +119,20 @@ func ConnectWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 		
 		go func(){
 			for{
-				_, jsonMessage, err := conn.ReadMessage()
+				ww, jsonMessage, err := conn.ReadMessage()
 				fmt.Println("One22one")
+				fmt.Println("err:", err)				
+				fmt.Println("ww:",ww)
 
 				if err != nil {
-					if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+					// if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 						fmt.Printf("unexpected close error: %v", err)
-					}
+						for key, val := range wsServer.rooms[name[0]].Players{
+							if val == conn {
+								wsServer.rooms[name[0]].leave(wsServer, conn,key )
+							}
+						}
+					// }
 					break
 				}
 				wsServer.rooms[name[0]].handleNewMessage(jsonMessage)
