@@ -5,19 +5,10 @@ import (
 	"log"
 )
 
-const SendMessageAction = "send-message"
-const JoinRoomAction = "join-room"
-const LeaveRoomAction = "leave-room"
-const UserJoinedAction = "user-join"
-const UserLeftAction = "user-left"
-const JoinRoomPrivateAction = "join-room-private"
-const RoomJoinedAction = "room-joined"
-
 type Message struct {
 	Action  string  `json:"action"`
 	Message interface{}  `json:"message"`
 	Sender int `json:"sender"`
-	// Target  *Room   `json:"target"`
 }
 
 func (message *Message) encode() []byte {

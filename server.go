@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"strconv"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -61,7 +60,7 @@ func (server *WsServer) Run() {
 				if size >= slotUsed + 1 {
 					fmt.Println("get in here")
 					room.Players[slotUsed+1] = joinRoom.conn
-					
+
 					fmt.Println("server52: ",room.Players)
 
 
@@ -101,10 +100,3 @@ func (server *WsServer) Run() {
 	}
 }
 
-// func (server *WsServer) createRoom(name string, grid string,theme string, size int) *Room {
-// 	room := NewRoom(name, grid, theme, size)
-// 	go room.RunRoom()
-// 	server.rooms[room] = true
-
-// 	return room
-// }
