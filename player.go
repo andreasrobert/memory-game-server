@@ -51,33 +51,38 @@ func ConnectWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 	
 
 	} else {
-		fmt.Println("joining")
-		joinRoom := JoinRoom{
-			name:name[0],
-			conn : conn,
-		}
-
-		wsServer.joinRoom <- &joinRoom
+		_, ok := wsServer.rooms[name[0]]
 		
-		go func(){
-			for{
-				ww, jsonMessage, err := conn.ReadMessage()
-				fmt.Println("One22one")
-				fmt.Println("err:", err)				
-				fmt.Println("ww:",ww)
-
-				if err != nil {
-					fmt.Printf("unexpected close error: %v", err)
-					for key, val := range wsServer.rooms[name[0]].Players{
-						if val == conn {
-							wsServer.rooms[name[0]].leave(wsServer, conn,key )
-						}
-					}
-					break
-				}
-				wsServer.rooms[name[0]].handleNewMessage(jsonMessage)
+		if ok {
+			fmt.Println("joining")
+			joinRoom := JoinRoom{
+				name:name[0],
+				conn : conn,
 			}
-		}()
+	
+			wsServer.joinRoom <- &joinRoom
+			
+			go func(){
+				for{
+					ww, jsonMessage, err := conn.ReadMessage()
+					fmt.Println("One22one")
+					fmt.Println("err:", err)				
+					fmt.Println("ww:",ww)
+	
+					if err != nil {
+						fmt.Printf("unexpected close error: %v", err)
+						for key, val := range wsServer.rooms[name[0]].Players{
+							if val == conn {
+								wsServer.rooms[name[0]].leave(wsServer, conn,key )
+							}
+						}
+						break
+					}
+					wsServer.rooms[name[0]].handleNewMessage(jsonMessage)
+				}
+			}()
+		}
+		
 
 		}
 	}
