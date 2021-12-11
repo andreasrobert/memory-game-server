@@ -1,17 +1,17 @@
 package main
 
 import (
-	// "flag"
+	"flag"
 	"log"
 	"net/http"
-	"os"
+	// "os"
 )
 
-// var addr = flag.String("addr", ":4000", "http server address")
+var addr = flag.String("addr", ":4000", "http server address")
 
 func main() {
-	// flag.Parse()
-	port := os.Getenv("PORT")
+	flag.Parse()
+	// port := os.Getenv("PORT")
 	wsServer := NewWebsocketServer()
 	go wsServer.Run()
 
@@ -22,5 +22,5 @@ func main() {
 	fs := http.FileServer(http.Dir("./public"))
 	http.Handle("/", fs)
 
-	log.Fatal(http.ListenAndServe(":"+port , nil))
+	log.Fatal(http.ListenAndServe(*addr, nil))
 }

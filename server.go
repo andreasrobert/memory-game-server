@@ -8,17 +8,18 @@ import (
 
 type WsServer struct {
 	broadcast 		chan []byte
-	registerRoom 	chan *Room
+	registerRoom 	chan *RegRoom
 	deleteRoom		chan *Room
 	joinRoom		chan *JoinRoom
 	rooms     		map[string]*Room
 }
 
+
 // NewWebsocketServer creates a new WsServer type
 func NewWebsocketServer() *WsServer {
 	return &WsServer{
 		broadcast: 		make(chan []byte),
-		registerRoom:	make(chan *Room),
+		registerRoom:	make(chan *RegRoom),
 		deleteRoom:		make(chan *Room),
 		joinRoom:		make(chan *JoinRoom),
 		rooms:     		make(map[string]*Room),
@@ -32,14 +33,15 @@ func (server *WsServer) Run() {
 		case room := <-server.registerRoom:
 			fmt.Println("add room to server")
 			fmt.Println("room : ", room)
-			fmt.Println("room name:",room.Name)
-			_, ok := server.rooms[room.Name]
+			fmt.Println("room name:",room.room.Name)
+			_, ok := server.rooms[room.room.Name]
 			if ok {
 				fmt.Println("room already being used")
 			}else{
-				server.rooms[room.Name]= room
-				size1 := room.Size
-				slotUsed := len(room.Players)
+				server.rooms[room.room.Name]= room.room
+				server.rooms[room.room.Name].Players <- []*websocket.Conn{room.conn}
+				size1 := room.room.Size
+				slotUsed := len(room.room.Players)
 				fmt.Println("size: ",size1)
 				fmt.Println("slotused: ",slotUsed)
 			}
@@ -59,7 +61,14 @@ func (server *WsServer) Run() {
 				fmt.Println("slotUsed:",slotUsed)
 				if size >= slotUsed + 1 {
 					fmt.Println("get in here")
-					room.Players[slotUsed+1] = joinRoom.conn
+
+					players := []*websocket.Conn{}
+
+					for player := range  server.rooms[joinRoom.name].Players {
+						players = append(players, player...)
+					}
+
+					server.rooms[joinRoom.name].Players <- players
 
 					fmt.Println("server52: ",room.Players)
 
@@ -79,11 +88,15 @@ func (server *WsServer) Run() {
 
 					messa := msg.encode()
 
-					for _, conn := range room.Players {
-						err := conn.WriteMessage(websocket.TextMessage, messa)
-						if err != nil {
-							fmt.Println("error:",err)
+					
+					for value := range room.Players {
+						for _, conn := range value{
+							err := conn.WriteMessage(websocket.TextMessage, messa)
+							if err != nil {
+								fmt.Println("error:",err)
+							}
 						}
+						
 					}
 
 				}else{

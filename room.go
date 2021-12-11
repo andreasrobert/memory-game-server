@@ -11,11 +11,13 @@ import (
 type Room struct {
 	ID         uuid.UUID `json:"id"`
 	Name       string    `json:"name"`
-	Players    map[int]*websocket.Conn `json:"players"`
-	broadcast  chan *Message
+	// Players    map[int]*websocket.Conn `json:"players"`
+	// broadcast  chan *Message
+	broadcast   chan string
 	Grid	   string	 `json:"grid"`
 	Theme	   string	 `json:"theme"`
 	Size       int 		 `json:"size"`
+	Players    chan []*websocket.Conn `json:"players"`
 }
 
 // NewRoom creates a new Room
@@ -23,8 +25,10 @@ func NewRoom(name string,conn *websocket.Conn, theme string,  grid string,size i
 	return &Room{
 		ID:         uuid.New(),
 		Name:       name,
-		Players:    map[int]*websocket.Conn{1:conn},
-		broadcast:  make(chan *Message),
+		// Players:    map[int]*websocket.Conn{1:conn},
+		Players:    make(chan []*websocket.Conn),
+		// broadcast:  make(chan *Message),
+		broadcast:  make(chan string),
 		Theme:      theme,
 		Grid:    	grid,
 		Size:		size,
@@ -34,32 +38,43 @@ func NewRoom(name string,conn *websocket.Conn, theme string,  grid string,size i
 // RunRoom runs our room, accepting various requests
 func (room *Room) RunRoom(server *WsServer) {
 
-	for key, conn := range room.Players{
-
-		defer func() {
-			room.leave(server, conn, key)
+	for{
+		select{
+		case player := <- room.Players:
+			println("42:",player)
+			println("43:",player)
+			for key, conn := range player{
+			defer func() {
+				room.leave(server, conn, key)
+			}()
 			
-		}()
+			_, jsonMessage, err := conn.ReadMessage()
+	
+			if err != nil {
+				fmt.Printf("unexpected close error: %v", err)
+				room.leave(server, conn, key)
+				break
+			}
+			room.handleNewMessage(jsonMessage)
+			}
+		
+		case some := <- room.broadcast:
+			println(some)
+
 		
 	}
 
-	for {
-		_, jsonMessage, err := room.Players[1].ReadMessage()
 
-		if err != nil {
-			fmt.Printf("unexpected close error: %v", err)
-			room.leave(server,room.Players[1], 1)
-			break
-		}
-		room.handleNewMessage(jsonMessage)
-	}
-	
+
+}
+
 }
 
 func (room *Room) leave(server *WsServer, conn *websocket.Conn, key int) {
 	fmt.Println("GOODBYE GOOD BYE :",key, room.Name)
 	conn.Close()
-	delete(room.Players,key)
+	// delete(room.Players,key)
+
 	fmt.Println(len(room.Players))
 	if len(room.Players) <= 0 || key == 1 {
 		delete(server.rooms, room.Name)
@@ -77,11 +92,14 @@ func (room *Room) leave(server *WsServer, conn *websocket.Conn, key int) {
 			Sender: key,
 		}
 		msg := message.encode()
-		for _, conn := range room.Players {
-			err := conn.WriteMessage(websocket.TextMessage, msg)
-			if err != nil {
-				fmt.Println("error:",err)
+		for value := range room.Players {
+			for _, conn := range value{
+				err := conn.WriteMessage(websocket.TextMessage, msg)
+				if err != nil {
+					fmt.Println("error:",err)
+				}
 			}
+			
 		}
 	}
 
@@ -110,11 +128,14 @@ func (room *Room) handleNewMessage(jsonMessage []byte) {
 	fmt.Println(message.Action)
 	fmt.Println("message:", message)
 	
-	for _,conn:= range room.Players {
-		err := conn.WriteMessage(websocket.TextMessage, jsonMessage)
+	for value := range room.Players {
+		for _, conn := range value{
+			err := conn.WriteMessage(websocket.TextMessage, jsonMessage)
 			if err != nil {
 				fmt.Println("error:",err)
 			}
+		}
+		
 	}
 
 	
