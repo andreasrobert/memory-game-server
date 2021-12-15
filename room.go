@@ -49,7 +49,7 @@ func (room *Room) RunRoom(server *WsServer) {
 		if err != nil {
 			fmt.Printf("unexpected close error: %v", err)
 			room.leave(server,room.Players[1], 1)
-			break
+			return
 		}
 		room.handleNewMessage(jsonMessage)
 	}

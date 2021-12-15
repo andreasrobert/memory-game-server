@@ -62,7 +62,7 @@ func ConnectWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 	
 			wsServer.joinRoom <- &joinRoom
 			
-			go func(){
+			go func(){			
 				for{
 					ww, jsonMessage, err := conn.ReadMessage()
 					fmt.Println("One22one")
@@ -74,6 +74,7 @@ func ConnectWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 						for key, val := range wsServer.rooms[name[0]].Players{
 							if val == conn {
 								wsServer.rooms[name[0]].leave(wsServer, conn,key )
+								return
 							}
 						}
 						break
