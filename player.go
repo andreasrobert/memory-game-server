@@ -71,13 +71,16 @@ func ConnectWs(wsServer *WsServer, w http.ResponseWriter, r *http.Request) {
 	
 					if err != nil {
 						fmt.Printf("unexpected close error: %v", err)
-						for key, val := range wsServer.rooms[name[0]].Players{
-							if val == conn {
-								wsServer.rooms[name[0]].leave(wsServer, conn,key )
-								return
+						room, ok := wsServer.rooms[name[0]]
+						if ok {
+							for key, val := range room.Players{
+								if val == conn {
+									room.leave(wsServer, conn,key )
+									return
+								}
 							}
 						}
-						break
+						return
 					}
 					wsServer.rooms[name[0]].handleNewMessage(jsonMessage)
 				}
